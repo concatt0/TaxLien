@@ -8,6 +8,7 @@ import pandas as pd
 from tabulate import tabulate
 import time
 import xlsxwriter
+import random
 
 # to prevent being blocked as bot
 # set agent as if request came from Firefox browser
@@ -78,8 +79,9 @@ for parcel in parcels:
         processed_parcel += 1
 
         startPointer += max(table_0_rows, table_1_rows, table_2_rows) + 3
-        print("waiting 60s for next parcel...\n")
-        time.sleep(60)
+        delay = random.randint(20, 60)
+        print(f"waiting {delay}s for next parcel...\n")
+        time.sleep(delay)
 
     except Exception as e:
         print(f"An error occurred: {e}")
