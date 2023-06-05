@@ -25,6 +25,8 @@ parcels = in_df["Parcel Number"]
 
 writer = pd.ExcelWriter("taxlien.xlsx", engine="xlsxwriter")
 
+processed_parcel = 0
+
 for parcel in parcels:
     print(f"processing parcel# {parcel}...")
 
@@ -33,48 +35,55 @@ for parcel in parcels:
         headers=headers,
     ).text
 
-    # replace all html line break tags "br" with new line "\n"
-    soup = BeautifulSoup(html_text, "lxml")
-    for br in soup.find_all("br"):
-        br.replace_with("\n")
+    try:
+        # replace all html line break tags "br" with new line "\n"
+        soup = BeautifulSoup(html_text, "lxml")
+        for br in soup.find_all("br"):
+            br.replace_with("\n")
 
-    parcelDetail = soup.find("div", id="parcelDetails")
+        parcelDetail = soup.find("div", id="parcelDetails")
 
-    spans = parcelDetail.find_all("span")
-    parcelNumber = spans[1].text
-    primaryOwner = spans[3].text
-    pAddress = spans[5].text
-    pType = spans[9].text
+        spans = parcelDetail.find_all("span")
+        parcelNumber = spans[1].text
+        primaryOwner = spans[3].text
+        pAddress = spans[5].text
+        pType = spans[9].text
 
-    data = [[parcelNumber, primaryOwner, pAddress, pType]]
-    df1 = pd.DataFrame(data, columns=["Parcel#", "PrimaryOwner", "Address", "Type"])
-    print(tabulate(df1, headers="keys", tablefmt="psql"))
-    df1.to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=0)
+        data = [[parcelNumber, primaryOwner, pAddress, pType]]
+        df1 = pd.DataFrame(data, columns=["Parcel#", "PrimaryOwner", "Address", "Type"])
+        print(tabulate(df1, headers="keys", tablefmt="psql"))
+        df1.to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=0)
 
-    # output Parcel Items table
-    table = soup.find_all("table")[0]
-    df = pd.read_html(str(table))
-    print(tabulate(df[0], headers="keys", tablefmt="psql"))
-    df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=5)
-    table_0_rows = df[0].shape[0]
+        # output Parcel Items table
+        table = soup.find_all("table")[0]
+        df = pd.read_html(str(table))
+        print(tabulate(df[0], headers="keys", tablefmt="psql"))
+        df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=5)
+        table_0_rows = df[0].shape[0]
 
-    # output Deeds table
-    table = soup.find_all("table")[1]
-    df = pd.read_html(str(table))
-    print(tabulate(df[0], headers="keys", tablefmt="psql"))
-    df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=11)
-    table_1_rows = df[0].shape[0]
+        # output Deeds table
+        table = soup.find_all("table")[1]
+        df = pd.read_html(str(table))
+        print(tabulate(df[0], headers="keys", tablefmt="psql"))
+        df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=11)
+        table_1_rows = df[0].shape[0]
 
-    # output Ownership History table
-    table = soup.find_all("table")[2]
-    df = pd.read_html(str(table))
-    print(tabulate(df[0], headers="keys", tablefmt="psql"))
-    df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=19)
-    table_2_rows = df[0].shape[0]
+        # output Ownership History table
+        table = soup.find_all("table")[2]
+        df = pd.read_html(str(table))
+        print(tabulate(df[0], headers="keys", tablefmt="psql"))
+        df[0].to_excel(writer, sheet_name="TaxLien", startrow=startPointer, startcol=19)
+        table_2_rows = df[0].shape[0]
 
-    startPointer += max(table_0_rows, table_1_rows, table_2_rows) + 3
-    print("waiting 60s for next parcel...\n")
-    time.sleep(60)
+        processed_parcel += 1
+
+        startPointer += max(table_0_rows, table_1_rows, table_2_rows) + 3
+        print("waiting 60s for next parcel...\n")
+        time.sleep(60)
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 writer.close()
+print(f"Processed Parcels = {processed_parcel}")
 print("All done, check taxlien.xlsx.")
